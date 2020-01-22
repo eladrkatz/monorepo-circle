@@ -6,5 +6,30 @@ jobs:
     working_directory: ~/repo
     steps:
       - checkout
-      - run: yarn install
-      - run: yarn test
+      - run:
+          name: Determine which directories have changed 
+          command: |
+            git diff --no-commit-id --name-only -r `git log -n 2 --oneline --pretty=format:"%h" | tail -n1` | cut -d/ -f1 | sort -u > projects
+            printf "Modified directories:\n"
+            cat projects
+            while read project; do
+              if grep -Fxq $project projects.txt; then
+                printf "\nTriggerring build for dir: "$dir
+                curl -s -u ${CIRCLE_TOKEN}: -d build_parameters[CIRCLE_JOB]=${project} https://circleci.com/api/v1.1/project/github/$O/$R/tree/$CIRCLE_BRANCH
+              fi
+            done <projects      
+      # - run: yarn install
+  server:
+    docker:
+      - image: circleci/node:carbon-stretch
+    steps:
+      - run:
+          name: build-server
+          command: echo building server!
+  client:
+    docker:
+      - image: circleci/node:carbon-stretch
+    steps:
+      - run:
+          name: build-client
+          command: echo building client!
